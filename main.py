@@ -37,7 +37,7 @@ def exchange_code(code):
     print(json.dumps(r.json(), indent=4))
     user = get_user_id(r.json()['access_token'])
     print(json.dumps(user, indent=4))
-    return "You've logged in successfully, you can now close this window."
+    return user
 
 def open_login():
     webbrowser.open(f'https://discord.com/oauth2/authorize?client_id=1175725825493045268&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Flogin&scope=identify')
