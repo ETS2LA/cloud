@@ -66,7 +66,7 @@ def create_user(user_id: str, username: str) -> DatabaseResponse:
                 "expiry": time.time() + EXPIRY,
                 "access_token": encrypt(token)
             }, indent=4))
-        return DatabaseResponse({"success": "User created successfully.", "token": token, "expiry": time.time() + EXPIRY}, 200)
+        return DatabaseResponse({"success": "User created successfully.", "user_id": user_id, "token": token, "expiry": time.time() + EXPIRY}, 200)
     except Exception as e:
         return DatabaseResponse({"error": str(e)}, 500)
 
@@ -74,7 +74,7 @@ def get_new_token(user_id: str) -> DatabaseResponse:
     token = create_user_access_token()
     if update_user_token(user_id, token).status != 200:
         return DatabaseResponse({"error": "Failed to update token."}, 500)
-    return DatabaseResponse({"success": "New token issued.", "token": token, "expiry": time.time() + EXPIRY}, 200)
+    return DatabaseResponse({"success": "New token issued.", "user_id": user_id, "token": token, "expiry": time.time() + EXPIRY}, 200)
 
 def get_user(user_id: str, token: str) -> DatabaseResponse:
     if not verify_token(user_id, token):

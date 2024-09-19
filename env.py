@@ -1,10 +1,10 @@
 from types import SimpleNamespace
 
-env = open(".env", "r").readlines()
-env = [x.strip() for x in env]
+envData = open(".env", "r").readlines()
+envData = [x.strip() for x in envData]
 
 dictionary = {}
-for i in env:
+for i in envData:
     dictionary[i.split("=")[0]] = i.replace(i.split("=")[0] + "=", "") # support for multiple = in value
 
 env = SimpleNamespace(**dictionary)
