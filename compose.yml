@@ -6,10 +6,10 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "9980:8000"
+      - "9981:8000"
     volumes:
       - /mnt/sdb3/ETS2LAData:/app/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9980/heartbeat"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:9981/heartbeat"]
       interval: 5m
       timeout: 3s
