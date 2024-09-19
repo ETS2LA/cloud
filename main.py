@@ -66,6 +66,10 @@ def get_user(user_id: str, authorization: str = Header(None)):
 def heartbeat():
     return {'status': 'ok'}
 
+@app.get('/auth/discord')
+def open_login():
+    return f'https://discord.com/oauth2/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={REDIRECT_URI}&scope=identify'
+
 def open_login():
     webbrowser.open(f'https://discord.com/oauth2/authorize?client_id=1175725825493045268&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fdiscord%2Flogin&scope=identify')
 
