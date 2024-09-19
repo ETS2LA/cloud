@@ -1,16 +1,25 @@
-import requests
+from fastapi import Header
 from env import env
+import webbrowser
+import requests
+import database
 import fastapi
 import uvicorn
 import json
-import webbrowser
 
 API_ENDPOINT = 'https://discord.com/api/v10'
 CLIENT_ID = env.CLIENT_ID
 CLIENT_SECRET = env.CLIENT_SECRET
-REDIRECT_URI = 'http://localhost:3000/auth/login'
+REDIRECT_URI = 'http://localhost:8000/auth/discord/login'
 
 app = fastapi.FastAPI()
+
+def verify_token(token):
+    headers = {
+        'Authorization': f'Bearer {token}'
+    }
+    r = requests.get('%s/users/@me' % API_ENDPOINT, headers=headers)
+    return r.status_code == 200
 
 def get_user_id(token):
     headers = {
@@ -20,7 +29,7 @@ def get_user_id(token):
     r.raise_for_status()
     return r.json()
 
-@app.get('/auth/login')
+@app.get('/auth/discord/login')
 def exchange_code(code):
     print("Got code:", code)
     data = {
@@ -37,11 +46,29 @@ def exchange_code(code):
     print(json.dumps(r.json(), indent=4))
     user = get_user_id(r.json()['access_token'])
     print(json.dumps(user, indent=4))
-    return user
+    
+    # Check if the user exists
+    database_response = database.get_new_token(user['id'])
+    if database_response.status != 200:
+        database_response = database.create_user(user['id'], user['username'])
+        if database_response.status != 200:
+            return {'error': 'Failed to create user.'}
+    
+    return database_response.data
+
+@app.get('/user/{user_id}')
+def get_user(user_id: str, authorization: str = Header(None)):
+    if not authorization:
+        return {'error': 'No authorization header.'}
+    return database.get_user(user_id, authorization)
+
+@app.get('/heartbeat')
+def heartbeat():
+    return {'status': 'ok'}
 
 def open_login():
-    webbrowser.open(f'https://discord.com/oauth2/authorize?client_id=1175725825493045268&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Flogin&scope=identify')
+    webbrowser.open(f'https://discord.com/oauth2/authorize?client_id=1175725825493045268&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fdiscord%2Flogin&scope=identify')
 
 if __name__ == '__main__':
-    open_login()
-    uvicorn.run(app, host='localhost', port=3000)
+    # open_login()
+    uvicorn.run(app, host='localhost', port=8000)
