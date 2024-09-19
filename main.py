@@ -10,7 +10,7 @@ import json
 API_ENDPOINT = 'https://discord.com/api/v10'
 CLIENT_ID = env.CLIENT_ID
 CLIENT_SECRET = env.CLIENT_SECRET
-REDIRECT_URI = 'https://api.ets2la.com/auth/discord/login'
+REDIRECT_URI = 'http://localhost:37520/auth/discord/login' # Redirect to the in app login URL
 
 app = fastapi.FastAPI()
 app.add_middleware(
