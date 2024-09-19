@@ -1,3 +1,4 @@
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Header
 from env import env
 import requests
@@ -12,6 +13,14 @@ CLIENT_SECRET = env.CLIENT_SECRET
 REDIRECT_URI = 'http://localhost:8000/auth/discord/login'
 
 app = fastapi.FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
 
 def verify_token(token):
     headers = {
