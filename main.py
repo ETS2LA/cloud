@@ -50,9 +50,7 @@ def exchange_code(code):
     }
     r = requests.post('%s/oauth2/token' % API_ENDPOINT, data=data, headers=headers, auth=(CLIENT_ID, CLIENT_SECRET))
     r.raise_for_status()
-    print(json.dumps(r.json(), indent=4))
     user = get_user_id(r.json()['access_token'])
-    print(json.dumps(user, indent=4))
     
     # Check if the user exists
     database_response = database.get_new_token(user['id'])
