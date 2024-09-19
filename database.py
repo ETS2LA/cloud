@@ -91,3 +91,16 @@ def get_user(user_id: str, token: str) -> DatabaseResponse:
         return DatabaseResponse({"error": "User not found."}, 404)
     except Exception as e:
         return DatabaseResponse({"error": str(e)}, 500)
+    
+def delete_user(user_id: str, token: str) -> DatabaseResponse:
+    if not verify_token(user_id, token):
+        return DatabaseResponse({"error": "Invalid token."}, 401)
+    
+    try:
+        os.remove(f"{PATH}/{user_id}/user.json")
+        os.rmdir(f"{PATH}/{user_id}")
+        return DatabaseResponse({"success": "User deleted successfully."}, 200)
+    except FileNotFoundError:
+        return DatabaseResponse({"error": "User not found."}, 404)
+    except Exception as e:
+        return DatabaseResponse({"error": str(e)}, 500)

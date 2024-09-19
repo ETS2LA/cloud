@@ -69,6 +69,12 @@ def get_user(user_id: str, authorization: str = Header(None)):
         return {'error': 'No authorization header.'}
     return database.get_user(user_id, authorization)
 
+@app.get('/delete/{user_id}')
+def delete_user(user_id: str, authorization: str = Header(None)):
+    if not authorization:
+        return {'error': 'No authorization header.'}
+    return database.delete_user(user_id, authorization)
+
 @app.get('/heartbeat')
 def heartbeat():
     return {'status': 'ok'}
