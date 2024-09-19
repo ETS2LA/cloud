@@ -12,6 +12,10 @@ Then run the following commands:
 pip install -r requirements.txt
 python main.py
 ```
+Alternatively use docker:
+```
+docker compose up
+```
 
 ## Explanation
 - `CLIENT_ID` and `CLIENT_SECRET` are the credentials for a Discord application.
