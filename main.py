@@ -5,12 +5,18 @@ import requests
 import database
 import fastapi
 import uvicorn
+import classes
 import json
 
+DEVELOPMENT = True
 API_ENDPOINT = 'https://discord.com/api/v10'
 CLIENT_ID = env.CLIENT_ID
 CLIENT_SECRET = env.CLIENT_SECRET
-REDIRECT_URI = 'http://localhost:37520/auth/discord/login' # Redirect to the in app login URL
+if DEVELOPMENT:
+    REDIRECT_URI = 'http://localhost:8000/auth/discord/login' # Redirect to the in app login URL
+    print(f"Testing URL: https://discord.com/oauth2/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A8000%2Fauth%2Fdiscord%2Flogin&scope=identify")
+else:
+    REDIRECT_URI = 'http://localhost:37520/auth/discord/login' # Redirect to the in app login URL
 
 app = fastapi.FastAPI()
 app.add_middleware(
@@ -20,6 +26,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# MARK: Auth
+
 
 def verify_token(token):
     headers = {
@@ -36,9 +46,12 @@ def get_user_id(token):
     r.raise_for_status()
     return r.json()
 
+@app.get('/auth/discord')
+def discord_url():
+    return f'https://discord.com/oauth2/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={REDIRECT_URI}&scope=identify'
+
 @app.get('/auth/discord/login')
 def exchange_code(code):
-    print("Got code:", code)
     data = {
         'grant_type': 'authorization_code',
         'code': code,
@@ -61,6 +74,10 @@ def exchange_code(code):
     
     return database_response.data
 
+
+# MARK: User
+
+
 @app.get('/user/{user_id}')
 def get_user(user_id: str, authorization: str = Header(None)):
     if not authorization:
@@ -73,14 +90,39 @@ def delete_user(user_id: str, authorization: str = Header(None)):
         return {'error': 'No authorization header.'}
     return database.delete_user(user_id, authorization)
 
+
+# MARK: Jobs
+
+
+@app.post('/user/{user_id}/job/started')
+def job_started(user_id: str, job: classes.Job, authorization: str = Header(None)):
+    if not authorization:
+        return {'error': 'No authorization header.'}
+    return database.job_started(user_id, authorization, job)
+
+@app.post('/user/{user_id}/job/finished')
+def job_finished(user_id: str, job: classes.FinishedJob, authorization: str = Header(None)):
+    if not authorization:
+        return {'error': 'No authorization header.'}
+    return database.job_finished(user_id, authorization, job)
+
+@app.post('/user/{user_id}/job/cancelled')
+def job_cancelled(user_id: str, job: classes.CancelledJob, authorization: str = Header(None)):
+    if not authorization:
+        return {'error': 'No authorization header.'}
+    return database.job_cancelled(user_id, authorization, job)
+
+
+# MARK: Heartbeat
+
+
 @app.get('/heartbeat')
 def heartbeat():
     return {'status': 'ok'}
 
-@app.get('/auth/discord')
-def open_login():
-    return f'https://discord.com/oauth2/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={REDIRECT_URI}&scope=identify'
-
 if __name__ == '__main__':
-    # open_login()
-    uvicorn.run(app, host='0.0.0.0', port=8000)
+    if DEVELOPMENT:
+        print("WARNING: Running on localhost")
+        uvicorn.run(app, host='localhost', port=8000)
+    else:
+        uvicorn.run(app, host='0.0.0.0', port=8000)
