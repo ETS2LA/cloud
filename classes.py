@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import Literal
 
 class CancelledJob(BaseModel):
-    timestamp: int = 0
+    timestamp: float = 0
     special: bool = False
     started_time: int = 0
     cancelled_time: int = 0
@@ -12,7 +12,7 @@ class CancelledJob(BaseModel):
         return self.model_dump()
 
 class FinishedJob(BaseModel):
-    timestamp: int = 0
+    timestamp: float = 0
     special: bool = False
     cargo: str = ""
     cargo_id: str = ""
@@ -31,7 +31,7 @@ class FinishedJob(BaseModel):
         return self.model_dump()
     
 class Job(BaseModel):
-    timestamp: int = 0
+    timestamp: float = 0
     special: bool = False
     cargo: str = ""
     cargo_id: str = ""
