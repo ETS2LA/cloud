@@ -8,7 +8,7 @@ import uvicorn
 import classes
 import json
 
-DEVELOPMENT = True
+DEVELOPMENT = False
 API_ENDPOINT = 'https://discord.com/api/v10'
 CLIENT_ID = env.CLIENT_ID
 CLIENT_SECRET = env.CLIENT_SECRET
