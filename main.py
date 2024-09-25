@@ -112,6 +112,11 @@ def job_cancelled(user_id: str, job: classes.CancelledJob, authorization: str = 
         return {'error': 'No authorization header.'}
     return database.job_cancelled(user_id, authorization, job)
 
+@app.get('/user/{user_id}/jobs')
+def get_jobs(user_id: str, authorization: str = Header(None)):
+    if not authorization:
+        return {'error': 'No authorization header.'}
+    return database.get_jobs(user_id, authorization)
 
 # MARK: Heartbeat
 

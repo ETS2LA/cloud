@@ -1,4 +1,5 @@
 from cryptography.fernet import Fernet
+from typing import List
 from env import env
 import classes
 import hashlib
@@ -185,6 +186,22 @@ def job_cancelled(user_id:str, token:str, job: classes.CancelledJob) -> Database
             f.write(json.dumps(data, indent=4))
             
         return DatabaseResponse({"success": "Job cancelled successfully."}, 200)
+    except FileNotFoundError:
+        return DatabaseResponse({"error": "User not found."}, 404)
+    except Exception as e:
+        return DatabaseResponse({"error": str(e)}, 500)
+    
+def get_jobs(user_id: str, token: str) -> DatabaseResponse:
+    if not verify_token(user_id, token):
+        return DatabaseResponse({"error": "Invalid token."}, 401)
+    
+    try:
+        if not os.path.exists(f"{PATH}/{user_id}/jobs.json"):
+            return DatabaseResponse({"error": "No jobs found."}, 404)
+        
+        data = json.loads(open(f"{PATH}/{user_id}/jobs.json", "r").read())
+        data = data["completed_jobs"]
+        return DatabaseResponse(data, 200)
     except FileNotFoundError:
         return DatabaseResponse({"error": "User not found."}, 404)
     except Exception as e:
