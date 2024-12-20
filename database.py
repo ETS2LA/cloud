@@ -33,7 +33,7 @@ def decrypt(data: str) -> str:
 def verify_token(user_id: str, token: str) -> bool:
     try:
         token = token.split(" ")[1]
-        with open(f"{PATH}/{user_id}/user.json", "r") as f:
+        with open(f"{PATH}/users/{user_id}/user.json", "r") as f:
             data = json.loads(f.read())
             return decrypt(data["access_token"]) == token
     except Exception:
@@ -41,12 +41,12 @@ def verify_token(user_id: str, token: str) -> bool:
     
 def update_user_token(user_id: str, token: str) -> DatabaseResponse:
     try:
-        with open(f"{PATH}/{user_id}/user.json", "r") as f:
+        with open(f"{PATH}/users/{user_id}/user.json", "r") as f:
             data = json.loads(f.read())
             data["last_updated"] = time.time()
             data["expiry"] = time.time() + EXPIRY
             data["access_token"] = encrypt(token)
-        with open(f"{PATH}/{user_id}/user.json", "w") as f:
+        with open(f"{PATH}/users/{user_id}/user.json", "w") as f:
             f.write(json.dumps(data, indent=4))
         return DatabaseResponse({"success": "Token updated successfully."}, 200)
     except FileNotFoundError:
@@ -62,12 +62,12 @@ def get_new_token(user_id: str) -> DatabaseResponse:
 
 def create_user(user_id: str, username: str) -> DatabaseResponse:
     try:
-        if os.path.exists(f"{PATH}/{user_id}/user.json"):
+        if os.path.exists(f"{PATH}/users/{user_id}/user.json"):
             return DatabaseResponse({"error": "User already exists."}, 400)
         
-        os.makedirs(f"{PATH}/{user_id}")
+        os.makedirs(f"{PATH}/users/{user_id}")
         token = create_user_access_token()
-        with open(f"{PATH}/{user_id}/user.json", "w") as f:
+        with open(f"{PATH}/users/{user_id}/user.json", "w") as f:
             f.write(json.dumps({
                 "user_id": encrypt(user_id),
                 "username": username,
@@ -87,7 +87,7 @@ def get_user(user_id: str, token: str) -> DatabaseResponse:
         return DatabaseResponse({"error": "Invalid token."}, 401)
     
     try:
-        with open(f"{PATH}/{user_id}/user.json", "r") as f:
+        with open(f"{PATH}/users/{user_id}/user.json", "r") as f:
             data = json.loads(f.read())
             data["user_id"] = decrypt(data["user_id"]) 
             data["access_token"] = decrypt(data["access_token"])   
@@ -103,9 +103,9 @@ def delete_user(user_id: str, token: str) -> DatabaseResponse:
         return DatabaseResponse({"error": "Invalid token."}, 401)
     
     try:
-        for file in os.listdir(f"{PATH}/{user_id}"):
-            os.remove(f"{PATH}/{user_id}/{file}")
-        os.rmdir(f"{PATH}/{user_id}")
+        for file in os.listdir(f"{PATH}/users/{user_id}"):
+            os.remove(f"{PATH}/users/{user_id}/{file}")
+        os.rmdir(f"{PATH}/users/{user_id}")
         return DatabaseResponse({"success": "User deleted successfully."}, 200)
     except FileNotFoundError:
         return DatabaseResponse({"error": "User not found."}, 404)
@@ -119,8 +119,8 @@ def job_started(user_id:str, token:str, job: classes.Job) -> DatabaseResponse:
         return DatabaseResponse({"error": "Invalid token."}, 401)
     
     try:
-        if not os.path.exists(f"{PATH}/{user_id}/jobs.json"):
-            with open(f"{PATH}/{user_id}/jobs.json", "w") as f:
+        if not os.path.exists(f"{PATH}/users/{user_id}/jobs.json"):
+            with open(f"{PATH}/users/{user_id}/jobs.json", "w") as f:
                 f.write(json.dumps(
                     {
                         "current_job": job.json(),
@@ -128,9 +128,9 @@ def job_started(user_id:str, token:str, job: classes.Job) -> DatabaseResponse:
                     }, indent=4))
             return DatabaseResponse({"success": "Job started successfully."}, 200)
         
-        data = json.loads(open(f"{PATH}/{user_id}/jobs.json", "r").read())
+        data = json.loads(open(f"{PATH}/users/{user_id}/jobs.json", "r").read())
         data["current_job"] = job.json()
-        with open(f"{PATH}/{user_id}/jobs.json", "w") as f:
+        with open(f"{PATH}/users/{user_id}/jobs.json", "w") as f:
             f.write(json.dumps(data, indent=4))
             
         return DatabaseResponse({"success": "Job started successfully."}, 200)
@@ -145,10 +145,10 @@ def job_finished(user_id:str, token:str, job: classes.FinishedJob) -> DatabaseRe
         return DatabaseResponse({"error": "Invalid token."}, 401)
     
     try:
-        if not os.path.exists(f"{PATH}/{user_id}/jobs.json"):
+        if not os.path.exists(f"{PATH}/users/{user_id}/jobs.json"):
             return DatabaseResponse({"error": "You can't finish a job that has not been started."}, 400)
         
-        data = json.loads(open(f"{PATH}/{user_id}/jobs.json", "r").read())
+        data = json.loads(open(f"{PATH}/users/{user_id}/jobs.json", "r").read())
         
         if data["current_job"] == {}:
             return DatabaseResponse({"error": "You can't finish a job that has not been started."}, 400)
@@ -158,7 +158,7 @@ def job_finished(user_id:str, token:str, job: classes.FinishedJob) -> DatabaseRe
         
         data["current_job"] = {}
         data["completed_jobs"].append(job.json())
-        with open(f"{PATH}/{user_id}/jobs.json", "w") as f:
+        with open(f"{PATH}/users/{user_id}/jobs.json", "w") as f:
             f.write(json.dumps(data, indent=4))
             
         return DatabaseResponse({"success": "Job finished successfully."}, 200)
@@ -172,17 +172,17 @@ def job_cancelled(user_id:str, token:str, job: classes.CancelledJob) -> Database
         return DatabaseResponse({"error": "Invalid token."}, 401)
     
     try:
-        if not os.path.exists(f"{PATH}/{user_id}/jobs.json"):
+        if not os.path.exists(f"{PATH}/users/{user_id}/jobs.json"):
             return DatabaseResponse({"error": "You can't cancel a job that has not been started."}, 400)
         
-        data = json.loads(open(f"{PATH}/{user_id}/jobs.json", "r").read())
+        data = json.loads(open(f"{PATH}/users/{user_id}/jobs.json", "r").read())
         
         if data["current_job"] == {}:
             return DatabaseResponse({"error": "You can't cancel a job that has not been started."}, 400)
         
         data["current_job"] = {}
         
-        with open(f"{PATH}/{user_id}/jobs.json", "w") as f:
+        with open(f"{PATH}/users/{user_id}/jobs.json", "w") as f:
             f.write(json.dumps(data, indent=4))
             
         return DatabaseResponse({"success": "Job cancelled successfully."}, 200)
@@ -196,10 +196,10 @@ def get_jobs(user_id: str, token: str) -> DatabaseResponse:
         return DatabaseResponse({"error": "Invalid token."}, 401)
     
     try:
-        if not os.path.exists(f"{PATH}/{user_id}/jobs.json"):
+        if not os.path.exists(f"{PATH}/users/{user_id}/jobs.json"):
             return DatabaseResponse({"error": "No jobs found."}, 404)
         
-        data = json.loads(open(f"{PATH}/{user_id}/jobs.json", "r").read())
+        data = json.loads(open(f"{PATH}/users/{user_id}/jobs.json", "r").read())
         data = data["completed_jobs"]
         return DatabaseResponse(data, 200)
     except FileNotFoundError:
