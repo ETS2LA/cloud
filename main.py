@@ -27,9 +27,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # MARK: Auth
-
 
 def verify_token(token):
     headers = {
@@ -74,9 +72,7 @@ def exchange_code(code):
     
     return database_response.data
 
-
 # MARK: User
-
 
 @app.get('/user/{user_id}')
 def get_user(user_id: str, authorization: str = Header(None)):
@@ -90,9 +86,7 @@ def delete_user(user_id: str, authorization: str = Header(None)):
         return {'error': 'No authorization header.'}
     return database.delete_user(user_id, authorization)
 
-
 # MARK: Jobs
-
 
 @app.post('/user/{user_id}/job/started')
 def job_started(user_id: str, job: classes.Job, authorization: str = Header(None)):
@@ -118,8 +112,31 @@ def get_jobs(user_id: str, authorization: str = Header(None)):
         return {'error': 'No authorization header.'}
     return database.get_jobs(user_id, authorization)
 
-# MARK: Heartbeat
+# MARK: Commits
 
+@app.get('/commits/{commit_id}')
+def get_commit_info(commit_id: str):
+    return database.get_commit_info(commit_id)
+
+@app.post('/commits/{commit_id}/updated')
+def mark_commit_updated(user_id: str, commits: classes.UpdatedCommits, authorization: str = Header(None)):
+    if not authorization:
+        return {'error': 'No authorization header.'}
+    return database.mark_commit_updated(user_id, authorization, commits)
+
+@app.post('/commits/{commit_id}/emote/add')
+def add_emote_to_commit(user_id: str, commit_id: str, emote: str, authorization: str = Header(None)):
+    if not authorization:
+        return {'error': 'No authorization header.'}
+    return database.add_emote_to_commit(user_id, authorization, commit_id, emote)
+
+@app.post('/commits/{commit_id}/emote/remove')
+def remove_emote_from_commit(user_id: str, commit_id: str, emote: str, authorization: str = Header(None)):
+    if not authorization:
+        return {'error': 'No authorization header.'}
+    return database.remove_emote_from_commit(user_id, authorization, commit_id, emote)
+
+# MARK: Heartbeat
 
 @app.get('/heartbeat')
 def heartbeat():

@@ -11,8 +11,17 @@ PATH: str = "data"
 EXPIRY: int = 604800 # 1 week
 crypt = Fernet(env.ENCRYPTION_KEY.encode())
 
-if not os.path.exists(PATH):
-    os.makedirs(PATH)
+def verify_folders() -> None:
+    if not os.path.exists(PATH):
+        os.makedirs(PATH)
+
+    if not os.path.exists(f"{PATH}/users"):
+        os.makedirs(f"{PATH}/users", exist_ok=True)
+        
+    if not os.path.exists(f"{PATH}/commits"):
+        os.makedirs(f"{PATH}/commits", exist_ok=True)
+        
+verify_folders()
 
 class DatabaseResponse:
     def __init__(self, data: dict, status: int) -> None:
@@ -204,5 +213,99 @@ def get_jobs(user_id: str, token: str) -> DatabaseResponse:
         return DatabaseResponse(data, 200)
     except FileNotFoundError:
         return DatabaseResponse({"error": "User not found."}, 404)
+    except Exception as e:
+        return DatabaseResponse({"error": str(e)}, 500)
+    
+# MARK: Commits
+
+def verify_commit_file(commit_id: str) -> bool:
+    try:
+        if not os.path.exists(f"{PATH}/commits/{commit_id}.json"):    
+            try:
+                with open(f"{PATH}/commits/{commit_id}.json", "w") as f:
+                    f.write(json.dumps({
+                        "updated_users": [],
+                        "emotes": []
+                    }, indent=4))
+                return True
+            except Exception:
+                return False
+        return True
+    except Exception:
+        return False
+
+def get_commit_info(commit_id: str) -> DatabaseResponse:
+    try:
+        if not os.path.exists(f"{PATH}/commits/{commit_id}.json"):
+            return DatabaseResponse({"error": "Commit not found."}, 404)
+        
+        data = json.loads(open(f"{PATH}/commits/{commit_id}.json", "r").read())
+        return DatabaseResponse(data, 200)
+    except FileNotFoundError:
+        return DatabaseResponse({"error": "Commit not found."}, 404)
+    except Exception as e:
+        return DatabaseResponse({"error": str(e)}, 500)
+
+def mark_commit_updated(user_id: str, token: str, commits: classes.UpdatedCommits):
+    if not verify_token(user_id, token):
+        return DatabaseResponse({"error": "Invalid token."}, 401)
+    
+    try:
+        for commit in commits.commits:
+            if not os.path.exists(f"{PATH}/commits/{commit}.json"):
+                return DatabaseResponse({"error": "Commit not found."}, 404)
+            else:
+                data = json.loads(open(f"{PATH}/commits/{commit}.json", "r").read())
+                data["updated_users"].append(user_id)
+                with open(f"{PATH}/commits/{commit}.json", "w") as f:
+                    f.write(json.dumps(data, indent=4))
+                    
+        return DatabaseResponse({"success": "Commits updated successfully."}, 200)
+    except FileNotFoundError:
+        return DatabaseResponse({"error": "User not found."}, 404)
+    except Exception as e:
+        return DatabaseResponse({"error": str(e)}, 500)
+    
+def add_emote_to_commit(user_id: str, token: str, commit_id: str, emote: str) -> DatabaseResponse:
+    if not verify_token(user_id, token):
+        return DatabaseResponse({"error": "Invalid token."}, 401)
+    
+    if not verify_commit_file(commit_id):
+        return DatabaseResponse({"error": "Commit not found."}, 404)
+    
+    try:
+        data = json.loads(open(f"{PATH}/commits/{commit_id}.json", "r").read())
+        data["emotes"].append({
+            "user_id": user_id,
+            "emote": emote
+        })
+        with open(f"{PATH}/commits/{commit_id}.json", "w") as f:
+            f.write(json.dumps(data, indent=4))
+            
+        return DatabaseResponse({"success": "Emote added to commit successfully."}, 200)
+    except FileNotFoundError:
+        return DatabaseResponse({"error": "Commit not found."}, 404)
+    except Exception as e:
+        return DatabaseResponse({"error": str(e)}, 500)
+    
+def remove_emote_from_commit(user_id: str, token: str, commit_id: str, emote: str) -> DatabaseResponse:
+    if not verify_token(user_id, token):
+        return DatabaseResponse({"error": "Invalid token."}, 401)
+    
+    if not verify_commit_file(commit_id):
+        return DatabaseResponse({"error": "Commit not found."}, 404)
+    
+    try:
+        data = json.loads(open(f"{PATH}/commits/{commit_id}.json", "r").read())
+        for i, e in enumerate(data["emotes"]):
+            if e["user_id"] == user_id and e["emote"] == emote:
+                data["emotes"].pop(i)
+                with open(f"{PATH}/commits/{commit_id}.json", "w") as f:
+                    f.write(json.dumps(data, indent=4))
+                return DatabaseResponse({"success": "Emote removed from commit successfully."}, 200)
+            
+        return DatabaseResponse({"error": "Emote not found in commit."}, 404)
+    except FileNotFoundError:
+        return DatabaseResponse({"error": "Commit not found."}, 404)
     except Exception as e:
         return DatabaseResponse({"error": str(e)}, 500)

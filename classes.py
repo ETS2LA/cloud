@@ -1,6 +1,8 @@
 from pydantic import BaseModel
 from typing import Literal
 
+# MARK: Jobs
+
 class CancelledJob(BaseModel):
     timestamp: float = 0
     special: bool = False
@@ -57,3 +59,12 @@ def IsFinishedJobSameAsStartedJob(started_job: Job, finished_job: FinishedJob) -
         and started_job.cargo == finished_job.cargo\
         and started_job.cargo_id == finished_job.cargo_id\
         and started_job.unit_mass == finished_job.unit_mass
+        
+        
+# MARK: Commits
+
+class UpdatedCommits(BaseModel):
+    commits: list[str] = []
+    
+    def json(self):
+        return self.model_dump()
