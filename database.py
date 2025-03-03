@@ -3,25 +3,29 @@ from typing import List
 from env import env
 import classes
 import hashlib
+import math
 import json
 import time
 import os
 
 PATH: str = "data"
 EXPIRY: int = 604800 # 1 week
-crypt = Fernet(env.ENCRYPTION_KEY.encode())
+try:
+    crypt = Fernet(env.ENCRYPTION_KEY.encode())
+except:
+    key = Fernet.generate_key()
+    print(f"Didn't find ecnryption key. Generated new key: {key.decode()}")
+    input("Please enter that key into the .env file (ENCRYPTION_KEY) and restart the server.")
+    exit()
 
-def verify_folders() -> None:
-    if not os.path.exists(PATH):
-        os.makedirs(PATH)
-
-    if not os.path.exists(f"{PATH}/users"):
-        os.makedirs(f"{PATH}/users", exist_ok=True)
+def verify_folder(path) -> None:
+    if not os.path.exists(path):
+        os.makedirs(path)
         
-    if not os.path.exists(f"{PATH}/commits"):
-        os.makedirs(f"{PATH}/commits", exist_ok=True)
-        
-verify_folders()
+verify_folder(PATH)
+verify_folder(f"{PATH}/users")
+verify_folder(f"{PATH}/commits")
+verify_folder(f"{PATH}/tracking")
 
 class DatabaseResponse:
     def __init__(self, data: dict, status: int) -> None:
@@ -309,3 +313,108 @@ def remove_emote_from_commit(user_id: str, token: str, commit_id: str, emote: st
         return DatabaseResponse({"error": "Commit not found."}, 404)
     except Exception as e:
         return DatabaseResponse({"error": str(e)}, 500)
+    
+# MARK: Tracking
+
+def verify_user_folder(user_id: str):
+    if not os.path.exists(f"{PATH}/tracking/{user_id}"):
+        os.makedirs(f"{PATH}/tracking/{user_id}")
+        
+def ping(user_id: str) -> DatabaseResponse:
+    verify_user_folder(user_id)
+    with open(f"{PATH}/tracking/{user_id}/ping.txt", "a") as f:
+        f.write(f"{time.time()}\n")
+        
+    return DatabaseResponse({"success": "Ping recorded."}, 200)
+
+def get_time_used(user_id: str) -> DatabaseResponse:
+    session_timeout = 180 # seconds = 3 minutes
+    verify_user_folder(user_id)
+    
+    try:
+        with open(f"{PATH}/tracking/{user_id}/ping.txt", "r") as f:
+            pings = f.readlines()
+            if len(pings) == 0:
+                return DatabaseResponse({"error": "No pings found."}, 404)
+            
+            sessions = []
+            for ping in pings:
+                ping_time = float(ping)
+                
+                if sessions == []:
+                    sessions.append([ping_time])
+                elif ping_time - sessions[-1][-1] > session_timeout:
+                    sessions.append([ping_time])
+                else:
+                    sessions[-1].append(ping_time)
+                    
+            time_used = 0
+            for session in sessions:
+                time_used += session[-1] - session[0]
+            
+            return DatabaseResponse({"time_used": time_used}, 200)
+        
+    except FileNotFoundError:
+        return DatabaseResponse({"error": "No pings found."}, 404)
+
+def get_unique_user_counts(data = [0, {}]) -> DatabaseResponse:
+    if time.time() - data[0] > 3600:
+        data[0] = time.time()
+        data[1] = {
+            "1h": 0,
+            "6h": 0,
+            "12h": 0,
+            "24h": 0,
+            "1w": 0,
+            "1m": 0
+        }
+        
+        range1h = range(math.floor(time.time() - 3600), math.ceil(time.time()))
+        range6h = range(math.floor(time.time() - 21600), math.ceil(time.time()))
+        range12h = range(math.floor(time.time() - 43200), math.ceil(time.time()))
+        range24h = range(math.floor(time.time() - 86400), math.ceil(time.time()))
+        range1w = range(math.floor(time.time() - 604800), math.ceil(time.time()))
+        range1m = range(math.floor(time.time() - 2592000), math.ceil(time.time()))
+        
+        for user in os.listdir(f"{PATH}/tracking"):
+            if not os.path.exists(f"{PATH}/tracking/{user}/ping.txt"):
+                continue
+            with open(f"{PATH}/tracking/{user}/ping.txt", "r") as f:
+                pings = f.readlines()
+                if len(pings) == 0:
+                    continue
+                
+                last_ping = float(pings[-1])
+                if math.floor(last_ping) in range1h:
+                    data[1]["1h"] += 1
+                if math.floor(last_ping) in range6h:
+                    data[1]["6h"] += 1
+                if math.floor(last_ping) in range12h:
+                    data[1]["12h"] += 1
+                if math.floor(last_ping) in range24h:
+                    data[1]["24h"] += 1
+                if math.floor(last_ping) in range1w:
+                    data[1]["1w"] += 1
+                if math.floor(last_ping) in range1m:
+                    data[1]["1m"] += 1
+                    
+    return DatabaseResponse(data[1], 200)
+    
+def get_online_user_count() -> DatabaseResponse:
+    session_timeout = 180 # seconds = 3 minutes
+    online_users = []
+    
+    for user in os.listdir(f"{PATH}/tracking"):
+        if not os.path.exists(f"{PATH}/tracking/{user}/ping.txt"):
+            continue
+        with open(f"{PATH}/tracking/{user}/ping.txt", "r") as f:
+            pings = f.readlines()
+            if len(pings) == 0:
+                continue
+            
+            last_ping = float(pings[-1])
+            if time.time() - last_ping < session_timeout:
+                online_users.append(user)
+                
+    unique_users = get_unique_user_counts().data
+    return DatabaseResponse({"online": len(online_users), "unique": unique_users}, 200)

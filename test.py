@@ -44,32 +44,57 @@ def test_finish_job():
     r = requests.post(f'http://localhost:8000/user/{user_id}/job/finished', headers=headers, json=data)
     return r.json()
 
-print(test_delete_user())
+users = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
+def test_ping():
+    for user in users:
+        r = requests.get(f'http://localhost:8000/tracking/ping/{user}')
+        print(r.json())
 
-print(test_get_user())
+def test_get_time():
+    for user in users:
+        r = requests.get(f'http://localhost:8000/tracking/time/{user}')
+        print(r.json())
+        
+def test_get_online_users():
+    r = requests.get('http://localhost:8000/tracking/users')
+    print(r.json())
 
-# Test cancel job
-print(test_start_job())
-print(test_cancel_job())
-
-# Test finish job without starting
-print(test_finish_job())
-
-# Test start and finish job
-print(test_start_job())
-print(test_finish_job())
-
-# Test cancel job without starting / after finishing
-print(test_cancel_job())    
-
-# Test start and finish job
-print(test_start_job())
-print(test_finish_job())
-
-# Test start job
-print(test_start_job())
+# print(test_delete_user())
+# 
+# print(test_get_user())
+# 
+# # Test cancel job
+# print(test_start_job())
+# print(test_cancel_job())
+# 
+# # Test finish job without starting
+# print(test_finish_job())
+# 
+# # Test start and finish job
+# print(test_start_job())
+# print(test_finish_job())
+# 
+# # Test cancel job without starting / after finishing
+# print(test_cancel_job())    
+# 
+# # Test start and finish job
+# print(test_start_job())
+# print(test_finish_job())
+# 
+# # Test start job
+# print(test_start_job())
 
 # END RESULT:
 # jobs.json:
 # current_job: a job
 # completed_jobs: two finished jobs
+
+import time
+while True:
+    print("\n\n\n\n\n-- Pinging --")
+    test_ping()
+    print("-- Getting time --")
+    test_get_time()
+    print("-- Getting online users --")
+    test_get_online_users()
+    time.sleep(5)

@@ -8,7 +8,7 @@ import uvicorn
 import classes
 import json
 
-DEVELOPMENT = False
+DEVELOPMENT = True
 API_ENDPOINT = 'https://discord.com/api/v10'
 CLIENT_ID = env.CLIENT_ID
 CLIENT_SECRET = env.CLIENT_SECRET
@@ -71,6 +71,20 @@ def exchange_code(code):
             return {'error': 'Failed to create user.'}
     
     return database_response.data
+
+# MARK: Tracking
+
+@app.get("/tracking/ping/{user_id}")
+def ping(user_id: str):
+    return database.ping(user_id)
+
+@app.get("/tracking/time/{user_id}")
+def get_user_time(user_id: str):
+    return database.get_time_used(user_id)
+
+@app.get("/tracking/users")
+def get_online_users():
+    return database.get_online_user_count()
 
 # MARK: User
 
