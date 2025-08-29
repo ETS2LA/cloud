@@ -1,4 +1,5 @@
 cryptography
+googletrans
 requests
 fastapi
 uvicorn

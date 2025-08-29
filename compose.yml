@@ -10,6 +10,6 @@ services:
     volumes:
       - /mnt/Zenith/ets2la/data:/app/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:9981/heartbeat"]
+      test: ["CMD", "curl", "-f", "http://192.168.1.125:9981/heartbeat"]
       interval: 5m
       timeout: 3s

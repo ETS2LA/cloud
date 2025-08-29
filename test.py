@@ -1,6 +1,7 @@
 from env import env
 import requests
 import classes
+import time
 import json
 
 user_id = env.TEST_USER_ID
@@ -59,6 +60,29 @@ def test_get_online_users():
     r = requests.get('http://localhost:8000/tracking/users')
     print(r.json())
 
+def test_crash_report():
+    data = {
+        "timestamp": 1234567890,
+        "source": "test_source",
+        "source_description": "This is a test crash report",
+        "fields": {
+            "field1": "value1",
+            "field2": "value2"
+        }
+    }
+    r = requests.post('http://localhost:8000/crash/report', json=data)
+    print(r.json())
+
+def test_feedback():
+    data = {
+        "timestamp": int(time.time()),
+        "message": "Tämä viesti on suomeksi.",
+        "user": "test_user",
+        "fields": {}
+    }
+    r = requests.post('http://localhost:8000/feedback', json=data)
+    print(r.json())
+
 # print(test_delete_user())
 # 
 # print(test_get_user())
@@ -89,12 +113,15 @@ def test_get_online_users():
 # current_job: a job
 # completed_jobs: two finished jobs
 
-import time
-while True:
-    print("\n\n\n\n\n-- Pinging --")
-    test_ping()
-    print("-- Getting time --")
-    test_get_time()
-    print("-- Getting online users --")
-    test_get_online_users()
-    time.sleep(5)
+# import time
+# while True:
+#     print("\n\n\n\n\n-- Pinging --")
+#     test_ping()
+#     print("-- Getting time --")
+#     test_get_time()
+#     print("-- Getting online users --")
+#     test_get_online_users()
+#     time.sleep(5)
+
+#test_crash_report()
+test_feedback()

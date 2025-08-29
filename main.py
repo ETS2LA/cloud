@@ -1,12 +1,14 @@
 from fastapi.middleware.cors import CORSMiddleware
+from datetime import datetime, timezone
+from googletrans import Translator
 from fastapi import Header
 from env import env
 import requests
 import database
+import asyncio
 import fastapi
 import uvicorn
 import classes
-import json
 
 DEVELOPMENT = False
 API_ENDPOINT = 'https://discord.com/api/v10'
@@ -150,6 +152,72 @@ def remove_emote_from_commit(user_id: str, commit_id: str, emote: str, authoriza
         return {'error': 'No authorization header.'}
     return database.remove_emote_from_commit(user_id, authorization, commit_id, emote)
 
+# MARK: Discord Integration
+
+@app.post('/feedback')
+async def feedback(feedback: classes.Feedback):
+    if not env.FEEDBACK_WEBHOOK:
+        return classes.Response({'error': 'No feedback webhook configured.'}, status=500)
+    
+    data = {
+        "embeds": [
+            {
+                "title": feedback.user,
+                "description": feedback.message,
+                "color": 5700441,
+                "author": {
+                    "name": "Feedback"
+                },
+                "fields": [
+                    {"name": k, "value": v, "inline": False} for k, v in feedback.fields.items()
+                ],
+                "timestamp": str(datetime.fromtimestamp(feedback.timestamp, tz=timezone.utc).isoformat()).split("+")[0] + ".000Z"
+            }
+        ],
+        "content": ""
+    }
+    
+    translation = None
+    async with Translator() as translator:
+        language = await translator.detect(feedback.message)
+        if language.lang != 'en':
+            translation = await translator.translate(feedback.message, dest='en')
+    
+    if translation:
+        data['embeds'][0]['fields'].append({"name": f"Translation (from {translation.src})", "value": translation.text, "inline": False})
+    
+    r = requests.post(env.FEEDBACK_WEBHOOK, json=data)
+    if r.status_code != 204:
+        return classes.Response({'error': 'Failed to send feedback.', 'stacktrace': r.text}, status=500)
+    return classes.Response({'status': 'ok'}, status=200)
+
+@app.post('/crash/report')
+def crash_report(report: classes.CrashReport):
+    if not env.CRASH_WEBHOOK:
+        return classes.Response({'error': 'No crash webhook configured.'}, status=500)
+    
+    data = {
+        "embeds": [
+            {
+                "title": report.source,
+                "description": report.source_description,
+                "color": 16471638,
+                "author": {
+                    "name": "Crash Report"
+                },
+                "fields": [
+                    {"name": k, "value": v, "inline": False} for k, v in report.fields.items()
+                ],
+                "timestamp": str(datetime.fromtimestamp(report.timestamp, tz=timezone.utc).isoformat()).split("+")[0] + ".000Z"
+            }
+        ],
+        "content": ""
+    }
+    r = requests.post(env.CRASH_WEBHOOK, json=data)
+    if r.status_code != 204:
+        return classes.Response({'error': 'Failed to send crash report.', 'stacktrace': r.text}, status=500)
+    return classes.Response({'status': 'ok'}, status=200)
+    
 # MARK: Heartbeat
 
 @app.get('/heartbeat')

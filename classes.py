@@ -1,6 +1,11 @@
 from pydantic import BaseModel
 from typing import Literal
 
+class Response:
+    def __init__(self, data: dict, status: int) -> None:
+        self.data = data
+        self.status = status
+
 # MARK: Jobs
 
 class CancelledJob(BaseModel):
@@ -68,3 +73,17 @@ class UpdatedCommits(BaseModel):
     
     def json(self):
         return self.model_dump()
+    
+# MARK: Discord Integration
+
+class CrashReport(BaseModel):
+    timestamp: float
+    source: str
+    source_description: str
+    fields: dict[str, str] = {}
+
+class Feedback(BaseModel):
+    timestamp: float
+    message: str
+    user: str
+    fields: dict[str, str] = {}
