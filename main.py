@@ -2,10 +2,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timezone
 from googletrans import Translator
 from fastapi import Header
+from fastapi import Form
 from env import env
 import requests
 import database
-import asyncio
 import fastapi
 import uvicorn
 import classes
@@ -219,18 +219,26 @@ def crash_report(report: classes.CrashReport):
     return classes.Response({'status': 'ok'}, status=200)
 
 @app.post('/kofi')
-def kofi(data: classes.KofiData):
+def kofi(
+    verification_token: str = Form(...),
+    type: str = Form(...),
+    is_public: bool = Form(...),
+    from_name: str = Form(None),
+    message: str = Form(None),
+    discord_username: str = Form(None),
+    discord_userid: str = Form(None)
+):
     if not env.KOFI_WEBHOOK or not env.KOFI_SECRET:
-        return
-    
-    if data.verification_token != env.KOFI_SECRET:
+        return classes.Response({'error': 'Webhook or secret not configured.'}, status=500)
+
+    if verification_token != env.KOFI_SECRET:
         return classes.Response({'error': 'Invalid verification token.'}, status=403)
-    
+
     name = "Anonymous"
     message = "No message provided."
-    if data.is_public:
-        name = data.discord_username if data.discord_username else data.from_name
-        message = data.message if data.message else "No message provided."
+    if is_public:
+        name = discord_username if discord_username else from_name
+        message = message if message else "No message provided."
 
     output = {
         "embeds": [
@@ -239,7 +247,7 @@ def kofi(data: classes.KofiData):
                 "description": f"> {message}",
                 "color": 16711680,
                 "author": {
-                    "name": f"New Ko-Fi {data.type}!",
+                    "name": f"New Ko-Fi {type}!",
                     "icon_url": "https://cdn.prod.website-files.com/5c14e387dab576fe667689cf/670f5a01229bf8a18f97a3c1_favion.png"
                 },
                 "fields": []
@@ -247,25 +255,24 @@ def kofi(data: classes.KofiData):
         ],
         "content": ""
     }
-    
-    if data.discord_userid and data.is_public:
-        output['embeds'][0]['fields'].append({"name": "Discord", "value": f"<@{data.discord_userid}>", "inline": False})
-        
-        time = get_user_time(data.discord_userid)
+
+    if discord_userid and is_public:
+        output['embeds'][0]['fields'].append({"name": "Discord", "value": f"<@{discord_userid}>", "inline": False})
+
+        time = get_user_time(discord_userid)
         if time.status == 200:
-            # format the timedata to hours/minutes/seconds
             time_text = ""
             if time.data['time_used'] >= 3600:
-                time_text += f"{round(time.data['time_used']/3600)} hours"
+                time_text += f"{round(time.data['time_used'] / 3600)} hours"
             if time.data['time_used'] >= 60:
                 if time_text:
                     time_text += " and "
-                time_text += f"{round((time.data['time_used']%3600)/60)} minutes"
+                time_text += f"{round((time.data['time_used'] % 3600) / 60)} minutes"
 
             output['embeds'][0]['fields'].append({"name": "ETS2LA User", "value": time_text, "inline": False})
-    
+
     output['embeds'][0]['fields'].append({"name": "", "value": "[Ko-Fi](https://ko-fi.com/Tumppi066)", "inline": False})
-    
+
     r = requests.post(env.KOFI_WEBHOOK, json=output)
     if r.status_code != 204:
         return classes.Response({'error': 'Failed to send Ko-fi notification.', 'stacktrace': r.text}, status=500)
