@@ -84,28 +84,8 @@ def test_feedback():
     print(r.json())
     
 def test_kofi():
-    data = {
-        "verification_token": "1f7f09ae-fe10-4b49-99c5-6a3761e70d04",
-        "message_id": "bc927216-8409-4046-a496-7447ea208173",
-        "timestamp": "2025-09-02T12:35:29Z",
-        "type": "Donation",
-        "is_public": False,
-        "from_name": "Tuomas",
-        "message": "Good luck with the integration!",
-        "amount": "3.00",
-        "url": "https://ko-fi.com/Home/CoffeeShop?txid=00000000-1111-2222-3333-444444444444",
-        "email": "jo.example@example.com",
-        "currency": "USD",
-        "is_subscription_payment": False,
-        "is_first_subscription_payment": False,
-        "kofi_transaction_id": "00000000-1111-2222-3333-444444444444",
-        "shop_items": None,
-        "tier_name": None,
-        "shipping": None,
-        "discord_username": "Tumppi066",
-        "discord_userid": "304923494570000384"
-    }
-    r = requests.post('http://localhost:8000/kofi', json=data)
+    data = "data=%7b%22verification_token%22%3a%221f7f09ae-fe10-4b49-99c5-6a3761e70d04%22%2c%22message_id%22%3a%221926302d-004d-492f-9e59-8d68811d153c%22%2c%22timestamp%22%3a%222025-09-02T13%3a26%3a06Z%22%2c%22type%22%3a%22Donation%22%2c%22is_public%22%3atrue%2c%22from_name%22%3a%22Jo+Example%22%2c%22message%22%3a%22Good+luck+with+the+integration!%22%2c%22amount%22%3a%223.00%22%2c%22url%22%3a%22https%3a%2f%2fko-fi.com%2fHome%2fCoffeeShop%3ftxid%3d00000000-1111-2222-3333-444444444444%22%2c%22email%22%3a%22jo.example%40example.com%22%2c%22currency%22%3a%22USD%22%2c%22is_subscription_payment%22%3afalse%2c%22is_first_subscription_payment%22%3afalse%2c%22kofi_transaction_id%22%3a%2200000000-1111-2222-3333-444444444444%22%2c%22shop_items%22%3anull%2c%22tier_name%22%3anull%2c%22shipping%22%3anull%2c%22discord_username%22%3a%22Jo%234105%22%2c%22discord_userid%22%3a%22012345678901234567%22%7d"
+    r = requests.post('http://localhost:8000/kofi', data=data, headers={"Content-Type": "application/x-www-form-urlencoded"})
     print(r.json())
 
 # print(test_delete_user())

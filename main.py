@@ -9,6 +9,7 @@ import database
 import fastapi
 import uvicorn
 import classes
+import json
 
 DEVELOPMENT = False
 API_ENDPOINT = 'https://discord.com/api/v10'
@@ -219,15 +220,20 @@ def crash_report(report: classes.CrashReport):
     return classes.Response({'status': 'ok'}, status=200)
 
 @app.post('/kofi')
-def kofi(
-    verification_token: str = Form(...),
-    type: str = Form(...),
-    is_public: bool = Form(...),
-    from_name: str = Form(None),
-    message: str = Form(None),
-    discord_username: str = Form(None),
-    discord_userid: str = Form(None)
-):
+async def kofi(data: str = Form(...)):
+    try:
+        parsed_data = json.loads(data)
+        
+        verification_token = parsed_data.get("verification_token")
+        kofi_type = parsed_data.get("type")
+        is_public = parsed_data.get("is_public")
+        from_name = parsed_data.get("from_name")
+        message = parsed_data.get("message")
+        discord_username = parsed_data.get("discord_username")
+        discord_userid = parsed_data.get("discord_userid")
+    except json.JSONDecodeError:
+        return classes.Response({'error': 'Invalid JSON in form data.'}, status=400)
+
     if not env.KOFI_WEBHOOK or not env.KOFI_SECRET:
         return classes.Response({'error': 'Webhook or secret not configured.'}, status=500)
 
@@ -247,7 +253,7 @@ def kofi(
                 "description": f"> {message}",
                 "color": 16711680,
                 "author": {
-                    "name": f"New Ko-Fi {type}!",
+                    "name": f"New Ko-Fi {kofi_type}!",
                     "icon_url": "https://cdn.prod.website-files.com/5c14e387dab576fe667689cf/670f5a01229bf8a18f97a3c1_favion.png"
                 },
                 "fields": []
