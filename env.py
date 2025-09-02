@@ -5,6 +5,8 @@ CLIENT_SECRET=your_discord_client_secret
 ENCRYPTION_KEY=enctyption_key_for_tokens
 CRASH_WEBHOOK=discord_webhook_url_for_crash_reports
 FEEDBACK_WEBHOOK=discord_webhook_url_for_feedback
+KOFI_WEBHOOK=discord_webhook_url_for_kofi_notifications
+KOFI_SECRET=kofi_secret_for_donations
 """
 
 from types import SimpleNamespace

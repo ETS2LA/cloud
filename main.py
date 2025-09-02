@@ -217,6 +217,59 @@ def crash_report(report: classes.CrashReport):
     if r.status_code != 204:
         return classes.Response({'error': 'Failed to send crash report.', 'stacktrace': r.text}, status=500)
     return classes.Response({'status': 'ok'}, status=200)
+
+@app.post('/kofi')
+def kofi(data: classes.KofiData):
+    if not env.KOFI_WEBHOOK or not env.KOFI_SECRET:
+        return
+    
+    if data.verification_token != env.KOFI_SECRET:
+        return classes.Response({'error': 'Invalid verification token.'}, status=403)
+    
+    name = "Anonymous"
+    message = "No message provided."
+    if data.is_public:
+        name = data.discord_username if data.discord_username else data.from_name
+        message = data.message if data.message else "No message provided."
+
+    output = {
+        "embeds": [
+            {
+                "title": name,
+                "description": f"> {message}",
+                "color": 16711680,
+                "author": {
+                    "name": f"New Ko-Fi {data.type}!",
+                    "icon_url": "https://cdn.prod.website-files.com/5c14e387dab576fe667689cf/670f5a01229bf8a18f97a3c1_favion.png"
+                },
+                "fields": []
+            }
+        ],
+        "content": ""
+    }
+    
+    if data.discord_userid and data.is_public:
+        output['embeds'][0]['fields'].append({"name": "Discord", "value": f"<@{data.discord_userid}>", "inline": False})
+        
+        time = get_user_time(data.discord_userid)
+        if time.status == 200:
+            # format the timedata to hours/minutes/seconds
+            time_text = ""
+            if time.data['time_used'] >= 3600:
+                time_text += f"{round(time.data['time_used']/3600)} hours"
+            if time.data['time_used'] >= 60:
+                if time_text:
+                    time_text += " and "
+                time_text += f"{round((time.data['time_used']%3600)/60)} minutes"
+
+            output['embeds'][0]['fields'].append({"name": "ETS2LA User", "value": time_text, "inline": False})
+    
+    output['embeds'][0]['fields'].append({"name": "", "value": "[Ko-Fi](https://ko-fi.com/Tumppi066)", "inline": False})
+    
+    r = requests.post(env.KOFI_WEBHOOK, json=output)
+    if r.status_code != 204:
+        return classes.Response({'error': 'Failed to send Ko-fi notification.', 'stacktrace': r.text}, status=500)
+    return classes.Response({'status': 'ok'}, status=200)
     
 # MARK: Heartbeat
 

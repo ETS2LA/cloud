@@ -82,6 +82,31 @@ def test_feedback():
     }
     r = requests.post('http://localhost:8000/feedback', json=data)
     print(r.json())
+    
+def test_kofi():
+    data = {
+        "verification_token": "1f7f09ae-fe10-4b49-99c5-6a3761e70d04",
+        "message_id": "bc927216-8409-4046-a496-7447ea208173",
+        "timestamp": "2025-09-02T12:35:29Z",
+        "type": "Donation",
+        "is_public": False,
+        "from_name": "Tuomas",
+        "message": "Good luck with the integration!",
+        "amount": "3.00",
+        "url": "https://ko-fi.com/Home/CoffeeShop?txid=00000000-1111-2222-3333-444444444444",
+        "email": "jo.example@example.com",
+        "currency": "USD",
+        "is_subscription_payment": False,
+        "is_first_subscription_payment": False,
+        "kofi_transaction_id": "00000000-1111-2222-3333-444444444444",
+        "shop_items": None,
+        "tier_name": None,
+        "shipping": None,
+        "discord_username": "Tumppi066",
+        "discord_userid": "304923494570000384"
+    }
+    r = requests.post('http://localhost:8000/kofi', json=data)
+    print(r.json())
 
 # print(test_delete_user())
 # 
@@ -124,4 +149,6 @@ def test_feedback():
 #     time.sleep(5)
 
 #test_crash_report()
-test_feedback()
+#test_feedback()
+
+test_kofi()
