@@ -241,10 +241,12 @@ async def kofi(data: str = Form(...)):
         return classes.Response({'error': 'Invalid verification token.'}, status=403)
 
     name = "Anonymous"
-    message = "No message provided."
+    default_message = "No message provided."
     if is_public:
         name = discord_username if discord_username else from_name
-        message = message if message else "No message provided."
+        message = message if message else default_message
+    else: 
+        message = default_message
 
     output = {
         "embeds": [
