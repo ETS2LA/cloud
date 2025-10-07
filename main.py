@@ -1,3 +1,6 @@
+from conversions import check_for_conversion
+check_for_conversion()
+
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timezone
 from googletrans import Translator
@@ -11,7 +14,7 @@ import uvicorn
 import classes
 import json
 
-DEVELOPMENT = False
+DEVELOPMENT = True
 API_ENDPOINT = 'https://discord.com/api/v10'
 CLIENT_ID = env.CLIENT_ID
 CLIENT_SECRET = env.CLIENT_SECRET

@@ -1,5 +1,4 @@
 from cryptography.fernet import Fernet
-from typing import List
 from env import env
 import classes
 import hashlib
@@ -12,7 +11,7 @@ PATH: str = "data"
 EXPIRY: int = 604800 # 1 week
 try:
     crypt = Fernet(env.ENCRYPTION_KEY.encode())
-except:
+except Exception:
     key = Fernet.generate_key()
     print(f"Didn't find ecnryption key. Generated new key: {key.decode()}")
     input("Please enter that key into the .env file (ENCRYPTION_KEY) and restart the server.")
@@ -26,6 +25,10 @@ verify_folder(PATH)
 verify_folder(f"{PATH}/users")
 verify_folder(f"{PATH}/commits")
 verify_folder(f"{PATH}/tracking")
+
+tracking_data = classes.TrackingData()
+tracking_data.load_from_pickle(f"{PATH}/tracking.pkl")
+tracking_data.update_stats()
 
 # MARK: Auth
 
@@ -312,104 +315,51 @@ def remove_emote_from_commit(user_id: str, token: str, commit_id: str, emote: st
 # MARK: Tracking
 
 def verify_user_folder(user_id: str):
-    if not os.path.exists(f"{PATH}/tracking/{user_id}"):
-        os.makedirs(f"{PATH}/tracking/{user_id}")
-        
+    if user_id not in tracking_data.users:
+        tracking_data.users[user_id] = classes.UserSessionData()
+
 def ping(user_id: str) -> classes.Response:
     verify_user_folder(user_id)
-    with open(f"{PATH}/tracking/{user_id}/ping.txt", "a") as f:
-        f.write(f"{time.time()}\n")
-        
+    
+    data = tracking_data.users[user_id]
+    data.latest = time.time()
+    
+    if len(data.sessions) == 0:
+        data.sessions.append(classes.SessionData(data.latest, data.latest))
+    elif data.latest - data.sessions[-1].end > 180: # 3 minutes
+        data.sessions.append(classes.SessionData(data.latest, data.latest))
+    else:
+        data.sessions[-1].end = data.latest
+
+    data.total = sum(s.end - s.start for s in data.sessions)
+    tracking_data.save_to_pickle(f"{PATH}/tracking.pkl")
     return classes.Response({"success": "Ping recorded."}, 200)
 
 def get_time_used(user_id: str) -> classes.Response:
-    session_timeout = 180 # seconds = 3 minutes
     verify_user_folder(user_id)
-    
     try:
-        with open(f"{PATH}/tracking/{user_id}/ping.txt", "r") as f:
-            pings = f.readlines()
-            if len(pings) == 0:
-                return classes.Response({"error": "No pings found."}, 404)
-            
-            sessions = []
-            for ping in pings:
-                ping_time = float(ping)
-                
-                if sessions == []:
-                    sessions.append([ping_time])
-                elif ping_time - sessions[-1][-1] > session_timeout:
-                    sessions.append([ping_time])
-                else:
-                    sessions[-1].append(ping_time)
-                    
-            time_used = 0
-            for session in sessions:
-                time_used += session[-1] - session[0]
-            
-            return classes.Response({"time_used": time_used}, 200)
-        
+        data = tracking_data.users[user_id]
+        time_used = data.total    
+        return classes.Response({
+            "time_used": time_used,
+            "sessions": len(data.sessions)
+        }, 200)
     except FileNotFoundError:
         return classes.Response({"error": "No pings found."}, 404)
 
-def get_unique_user_counts(data = [0, {}]) -> classes.Response:
-    if time.time() - data[0] > 3600:
-        data[0] = time.time()
-        data[1] = {
-            "1h": 0,
-            "6h": 0,
-            "12h": 0,
-            "24h": 0,
-            "1w": 0,
-            "1m": 0
-        }
-        
-        range1h = range(math.floor(time.time() - 3600), math.ceil(time.time()))
-        range6h = range(math.floor(time.time() - 21600), math.ceil(time.time()))
-        range12h = range(math.floor(time.time() - 43200), math.ceil(time.time()))
-        range24h = range(math.floor(time.time() - 86400), math.ceil(time.time()))
-        range1w = range(math.floor(time.time() - 604800), math.ceil(time.time()))
-        range1m = range(math.floor(time.time() - 2592000), math.ceil(time.time()))
-        
-        for user in os.listdir(f"{PATH}/tracking"):
-            if not os.path.exists(f"{PATH}/tracking/{user}/ping.txt"):
-                continue
-            with open(f"{PATH}/tracking/{user}/ping.txt", "r") as f:
-                pings = f.readlines()
-                if len(pings) == 0:
-                    continue
-                
-                last_ping = float(pings[-1])
-                if math.floor(last_ping) in range1h:
-                    data[1]["1h"] += 1
-                if math.floor(last_ping) in range6h:
-                    data[1]["6h"] += 1
-                if math.floor(last_ping) in range12h:
-                    data[1]["12h"] += 1
-                if math.floor(last_ping) in range24h:
-                    data[1]["24h"] += 1
-                if math.floor(last_ping) in range1w:
-                    data[1]["1w"] += 1
-                if math.floor(last_ping) in range1m:
-                    data[1]["1m"] += 1
-                    
-    return classes.Response(data[1], 200)
+def get_unique_user_counts() -> classes.Response:
+    tracking_data.update_stats()
+    dictionary = {
+        "1h": tracking_data.last_1h,
+        "1d": tracking_data.last_1d,
+        "7d": tracking_data.last_7d,
+        "30d": tracking_data.last_30d,
+        "total_users": len(tracking_data.users),
+        "total_tracked_hours": sum(u.total for u in tracking_data.users.values()) / 3600
+    }
+    return classes.Response(dictionary, 200)
     
 def get_online_user_count() -> classes.Response:
-    session_timeout = 180 # seconds = 3 minutes
-    online_users = []
-    
-    for user in os.listdir(f"{PATH}/tracking"):
-        if not os.path.exists(f"{PATH}/tracking/{user}/ping.txt"):
-            continue
-        with open(f"{PATH}/tracking/{user}/ping.txt", "r") as f:
-            pings = f.readlines()
-            if len(pings) == 0:
-                continue
-            
-            last_ping = float(pings[-1])
-            if time.time() - last_ping < session_timeout:
-                online_users.append(user)
-                
+    tracking_data.update_current_users()
     unique_users = get_unique_user_counts().data
-    return classes.Response({"online": len(online_users), "unique": unique_users}, 200)
+    return classes.Response({"online": tracking_data.last_180s, "unique": unique_users}, 200)
