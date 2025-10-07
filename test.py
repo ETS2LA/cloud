@@ -56,6 +56,11 @@ def test_get_time():
         r = requests.get(f'http://localhost:8000/tracking/time/{user}')
         print(r.json())
         
+def test_get_sessions():
+    for user in users:
+        r = requests.get(f'http://localhost:8000/tracking/sessions/{user}')
+        print(r.json())
+        
 def test_get_online_users():
     r = requests.get('http://localhost:8000/tracking/users')
     print(r.json())
@@ -118,17 +123,19 @@ def test_kofi():
 # current_job: a job
 # completed_jobs: two finished jobs
 
-import time
-while True:
-    print("\n\n\n\n\n-- Pinging --")
-    test_ping()
-    print("-- Getting time --")
-    test_get_time()
-    print("-- Getting online users --")
-    test_get_online_users()
-    time.sleep(5)
+# import time
+# while True:
+#     print("\n\n\n\n\n-- Pinging --")
+#     test_ping()
+#     print("-- Getting time --")
+#     test_get_time()
+#     print("-- Getting online users --")
+#     test_get_online_users()
+#     time.sleep(5)
 
 #test_crash_report()
 #test_feedback()
 
 # test_kofi()
+
+test_get_sessions()

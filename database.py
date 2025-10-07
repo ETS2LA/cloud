@@ -347,6 +347,17 @@ def get_time_used(user_id: str) -> classes.Response:
     except FileNotFoundError:
         return classes.Response({"error": "No pings found."}, 404)
 
+def get_sessions(user_id: str) -> classes.Response:
+    verify_user_folder(user_id)
+    try:
+        data = tracking_data.users[user_id]
+        sessions = [s.json() for s in data.sessions]    
+        return classes.Response({
+            "sessions": sessions
+        }, 200)
+    except FileNotFoundError:
+        return classes.Response({"error": "No pings found."}, 404)
+
 def get_unique_user_counts() -> classes.Response:
     tracking_data.update_stats()
     dictionary = {

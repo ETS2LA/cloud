@@ -132,6 +132,12 @@ class SessionData():
     def __init__(self, start: float, end: float) -> None:
         self.start = start
         self.end = end
+        
+    def json(self) -> dict:
+        return {
+            "start": self.start,
+            "end": self.end
+        }
 
 class UserSessionData():
     sessions: list[SessionData] = []

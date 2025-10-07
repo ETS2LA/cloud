@@ -88,6 +88,10 @@ def ping(user_id: str):
 def get_user_time(user_id: str):
     return database.get_time_used(user_id)
 
+@app.get("/tracking/sessions/{user_id}")
+def get_user_sessions(user_id: str):
+    return database.get_sessions(user_id)
+
 @app.get("/tracking/users")
 def get_online_users():
     return database.get_online_user_count()
