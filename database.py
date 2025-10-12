@@ -336,7 +336,6 @@ def ping(user_id: str) -> classes.Response:
     return classes.Response({"success": "Ping recorded."}, 200)
 
 def get_time_used(user_id: str) -> classes.Response:
-    verify_user_folder(user_id)
     try:
         data = tracking_data.users[user_id]
         time_used = data.total    
@@ -348,7 +347,6 @@ def get_time_used(user_id: str) -> classes.Response:
         return classes.Response({"error": "No pings found."}, 404)
 
 def get_sessions(user_id: str) -> classes.Response:
-    verify_user_folder(user_id)
     try:
         data = tracking_data.users[user_id]
         sessions = [s.json() for s in data.sessions]    
