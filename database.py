@@ -324,37 +324,63 @@ def ping(user_id: str) -> classes.Response:
     data = tracking_data.users[user_id]
     data.latest = time.time()
     
+    # Offset by 1 minute since the polling interval 
+    # is (meant to be) 2 minutes.
     if len(data.sessions) == 0:
-        data.sessions.append(classes.SessionData(data.latest, data.latest))
-    elif data.latest - data.sessions[-1].end > 180: # 3 minutes
-        data.sessions.append(classes.SessionData(data.latest, data.latest))
+        # First session
+        data.sessions.append(classes.SessionData(data.latest - 60, data.latest + 60))
+    elif data.latest - data.sessions[-1].end > 180:
+        # Been over 3 minutes since last ping, start a new session
+        data.sessions.append(classes.SessionData(data.latest - 60, data.latest + 60))
     else:
-        data.sessions[-1].end = data.latest
+        # Continue last session
+        data.sessions[-1].end = data.latest + 60
 
     data.total = sum(s.end - s.start for s in data.sessions)
     tracking_data.save_to_pickle(f"{PATH}/tracking.pkl")
     return classes.Response({"success": "Ping recorded."}, 200)
 
+def validate_sessions(user_id: str):
+    verify_user_folder(user_id)
+    data = tracking_data.users[user_id]
+    valid_sessions = []
+    for session in data.sessions:
+        total_time = session.end - session.start
+        if total_time >= 10*60*60: # 10 hours
+            continue
+        valid_sessions.append(session)
+        
+    data.sessions = valid_sessions
+    data.total = sum(s.end - s.start for s in data.sessions)
+
 def get_time_used(user_id: str) -> classes.Response:
+    if user_id not in tracking_data.users:
+        return classes.Response({"error": "User does not exist."}, 404)
+    
     try:
+        validate_sessions(user_id)
         data = tracking_data.users[user_id]
         time_used = data.total    
         return classes.Response({
             "time_used": time_used,
             "sessions": len(data.sessions)
         }, 200)
-    except FileNotFoundError:
-        return classes.Response({"error": "No pings found."}, 404)
+    except Exception:
+        return classes.Response({"error": "User does not exist."}, 404)
 
 def get_sessions(user_id: str) -> classes.Response:
+    if user_id not in tracking_data.users:
+        return classes.Response({"error": "User does not exist."}, 404)
+
     try:
+        validate_sessions(user_id)
         data = tracking_data.users[user_id]
         sessions = [s.json() for s in data.sessions]    
         return classes.Response({
             "sessions": sessions
         }, 200)
-    except FileNotFoundError:
-        return classes.Response({"error": "No pings found."}, 404)
+    except Exception:
+        return classes.Response({"error": "User does not exist."}, 404)
 
 def get_unique_user_counts() -> classes.Response:
     tracking_data.update_stats()
