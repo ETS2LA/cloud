@@ -2,7 +2,6 @@ from env import env
 import requests
 import classes
 import time
-import json
 
 user_id = env.TEST_USER_ID
 token = env.TEST_USER_TOKEN

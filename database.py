@@ -324,14 +324,14 @@ def ping(user_id: str) -> classes.Response:
     data = tracking_data.users[user_id]
     data.latest = time.time()
     
-    # Offset by 1 minute since the polling interval 
+    # Offset times by 1 minute since the polling interval 
     # is (meant to be) 2 minutes.
     if len(data.sessions) == 0:
         # First session
-        data.sessions.append(classes.SessionData(data.latest - 60, data.latest + 60))
+        data.sessions.append(classes.SessionData(data.latest, data.latest + 60))
     elif data.latest - data.sessions[-1].end > 180:
         # Been over 3 minutes since last ping, start a new session
-        data.sessions.append(classes.SessionData(data.latest - 60, data.latest + 60))
+        data.sessions.append(classes.SessionData(data.latest, data.latest + 60))
     else:
         # Continue last session
         data.sessions[-1].end = data.latest + 60
@@ -345,8 +345,8 @@ def validate_sessions(user_id: str):
     data = tracking_data.users[user_id]
     valid_sessions = []
     for session in data.sessions:
-        total_time = session.end - session.start
-        if total_time >= 10*60*60: # 10 hours
+        session_time = session.end - session.start
+        if session_time >= 12*60*60: # 12 hours
             continue
         valid_sessions.append(session)
         
