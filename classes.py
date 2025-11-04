@@ -199,7 +199,7 @@ class TrackingData():
         import os
         
         now = time.time()
-        if self.last_written > now - 600: # saved within the last 10 minutes
+        if self.last_written > now - 43200: # saved within the last 12 hours
             return
         
         # There's a chance of a race condition here, but it's *very* unlikely.
